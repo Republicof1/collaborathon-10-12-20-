@@ -1,0 +1,47 @@
+library TestArtifact version '1'
+
+using FHIR version '4.0.0'
+
+include "FHIRHelpers" version '4.0.0' called FHIRHelpers
+
+codesystem "SNOMED": 'http://snomed.info/sct'
+codesystem "CONDCLINSTATUS": 'http://terminology.hl7.org/CodeSystem/condition-clinical'
+codesystem "CONDVERSTATUS": 'http://terminology.hl7.org/CodeSystem/condition-ver-status'
+
+//we need some codes that define AKI
+code "Serum creatinine raised": '166717003' from "SNOMED" display 'Raised Creat'
+code "Decreased urine output": '718403007' from "SNOMED" display 'Decreased Urine'
+code "Glomerular filtration rate decreased": '863929001' from "SNOMED" display 'Decreased GFR'
+
+
+code "Condition Active code": 'active' from "CONDCLINSTATUS" display 'Active'
+code "Condition Confirmed code": 'confirmed' from "CONDVERSTATUS" display 'Confirmed'
+
+concept "Condition Active": { "Condition Active code" } display 'Active'
+concept "Condition Confirmed": { "Condition Confirmed code" } display 'Confirmed'
+
+context Patient
+
+define "AgeRange-all":
+  AgeInYears() >= 20 and AgeInYears() <= 90
+    
+define "AKI Creat Indication":
+  exists(ActiveCondition([Condition: "Serum creatinine raised"]))
+    
+define "AKI Urine Indication":
+  exists(ActiveCondition([Condition: "Decreased urine output"]))
+    
+define "AKI GFR Indication":
+  exists(ActiveCondition([Condition: "Glomerular filtration rate decreased"]))
+    
+define "MeetsInclusionCriteria":
+  "AgeRange-all"
+
+
+define function Confirmed(CondList List<Condition>):
+  CondList C where C.verificationStatus ~ "Condition Confirmed code"
+
+define function ActiveCondition(CondList List<Condition>):
+  CondList C
+    where C.clinicalStatus ~ "Condition Active code"
+      and C.abatement is null
